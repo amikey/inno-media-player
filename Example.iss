@@ -5,7 +5,6 @@ DefaultDirName={pf}\Media Player Project
 
 [Files]
 Source: "MediaPlayer.dll"; Flags: dontcopy
-Source: "InnoCallback.dll"; Flags: dontcopy
 
 [Code]
 const
@@ -20,13 +19,11 @@ function DSPlayMediaFile: Boolean;
   external 'DSPlayMediaFile@files:mediaplayer.dll stdcall';
 function DSStopMediaPlay: Boolean;
   external 'DSStopMediaPlay@files:mediaplayer.dll stdcall';
-function DSInitializeAudioFile(FileName: WideString; CallbackProc: LongWord):
+function DSInitializeAudioFile(FileName: WideString; CallbackProc: TDirectShowEventProc):
   Boolean; external 'DSInitializeAudioFile@files:mediaplayer.dll stdcall';
 function DSInitializeVideoFile(FileName: WideString; WindowHandle: HWND; var Width,
-  Height: Integer; CallbackProc: LongWord): Boolean;
+  Height: Integer; CallbackProc: TDirectShowEventProc): Boolean;
   external 'DSInitializeVideoFile@files:mediaplayer.dll stdcall';
-function WrapDirectShowEventProc(Callback: TDirectShowEventProc; 
-  ParamCount: Integer): LongWord; external 'wrapcallback@files:InnoCallback.dll stdcall';  
 
 var
   VideoForm: TSetupForm;
@@ -45,11 +42,9 @@ var
   ErrorCode: HRESULT;
   ErrorText: WideString; 
   Width, Height: Integer;
-  DirectShowEventProc: LongWord;
 begin
-  DirectShowEventProc := WrapDirectShowEventProc(@OnMediaPlayerEvent, 3);
-  if DSInitializeVideoFile('d:\Video.avi', VideoForm.Handle, Width, 
-    Height, DirectShowEventProc)
+  if DSInitializeVideoFile('c:\Video.avi', VideoForm.Handle, Width, 
+    Height, @OnMediaPlayerEvent)
   then
   begin
     VideoForm.ClientWidth := Width;
@@ -102,17 +97,15 @@ var
   ErrorCode: HRESULT;
   ErrorText: WideString; 
   Width, Height: Integer;
-  DirectShowEventProc: LongWord;
 begin
   case CurPageID of
     VideoPage.ID:
     begin
-      DirectShowEventProc := WrapDirectShowEventProc(@OnEmbeddedMediaPlayerEvent, 3);
       Width := VideoPanel.ClientWidth; 
       Height := VideoPanel.ClientHeight;
       WizardForm.InnerPage.Color := clBlack; 
-      if DSInitializeVideoFile('d:\Video.avi', VideoPanel.Handle, Width, Height, 
-        DirectShowEventProc)
+      if DSInitializeVideoFile('c:\Video.avi', VideoPanel.Handle, Width, Height, 
+        @OnEmbeddedMediaPlayerEvent)
       then
         DSPlayMediaFile
       else
@@ -125,8 +118,7 @@ begin
     AudioPage.ID:
     begin
       WizardForm.InnerPage.Color := clBtnFace;
-      DirectShowEventProc := WrapDirectShowEventProc(@OnEmbeddedMediaPlayerEvent, 3);
-      if DSInitializeAudioFile('d:\Audio.mp3', DirectShowEventProc) then
+      if DSInitializeAudioFile('c:\Audio.mp3', @OnEmbeddedMediaPlayerEvent) then
         DSPlayMediaFile
       else
       begin

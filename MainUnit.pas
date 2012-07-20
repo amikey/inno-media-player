@@ -16,7 +16,7 @@ type
     constructor Create(ErrorCode: HRESULT);
     property ErrorCode: HRESULT read FErrorCode;
   end;
-  TDirectShowEventProc = procedure(EventCode, Param1, Param2: Integer); stdcall;
+  TDirectShowEventProc = procedure(EventCode, Param1, Param2: Integer) of object;
   TDirectShowPlayerState = (
     dspsUninitialized,
     dspsInitialized,
@@ -28,7 +28,7 @@ type
     FLastError: HRESULT;
     FWindowHandle: HWND;
     FPlayerState: TDirectShowPlayerState;
-    FEventCallback: Pointer;
+    FEventCallback: TDirectShowEventProc;
     FVideoWindow: IVideoWindow;
     FGraphBuilder: IGraphBuilder;
     FMediaEventEx: IMediaEventEx;
@@ -46,9 +46,9 @@ type
     constructor Create;
     destructor Destroy; override;
     function InitializeAudioFile(FileName: PWideChar;
-      CallbackProc: Pointer): HRESULT;
+      CallbackProc: TDirectShowEventProc): HRESULT;
     function InitializeVideoFile(FileName: PWideChar; WindowHandle: HWND;
-      var Width, Height: Integer; CallbackProc: Pointer): HRESULT;
+      var Width, Height: Integer; CallbackProc: TDirectShowEventProc): HRESULT;
     function PlayMediaFile: HRESULT;
     function StopMediaPlay: HRESULT;
     function PauseMediaPlay: HRESULT;
@@ -56,10 +56,10 @@ type
   end;
 
 function DSGetLastError(var ErrorText: PWideChar): HRESULT; stdcall;
-function DSInitializeAudioFile(FileName: PWideChar; CallbackProc: Pointer):
+function DSInitializeAudioFile(FileName: PWideChar; CallbackProc: TDirectShowEventProc):
   Boolean; stdcall;
 function DSInitializeVideoFile(const FileName: PWideChar; WindowHandle: HWND; var Width,
-  Height: Integer; CallbackProc: Pointer): Boolean; stdcall;
+  Height: Integer; CallbackProc: TDirectShowEventProc): Boolean; stdcall;
 function DSPlayMediaFile: Boolean; stdcall;
 function DSStopMediaPlay: Boolean; stdcall;
 function DSPauseMediaPlay: Boolean; stdcall;
@@ -168,7 +168,7 @@ begin
 end;
 
 function TDirectShowPlayer.InitializeAudioFile(FileName: PWideChar;
-  CallbackProc: Pointer): HRESULT;
+  CallbackProc: TDirectShowEventProc): HRESULT;
 begin
   Result := S_FALSE;
   try
@@ -190,7 +190,7 @@ begin
 end;
 
 function TDirectShowPlayer.InitializeVideoFile(FileName: PWideChar; WindowHandle: HWND;
-  var Width, Height: Integer; CallbackProc: Pointer): HRESULT;
+  var Width, Height: Integer; CallbackProc: TDirectShowEventProc): HRESULT;
 begin
   Result := S_FALSE;
   try
@@ -273,7 +273,7 @@ begin
   begin
     while Succeeded(FMediaEventEx.GetEvent(EventCode, Param1, Param2, 0)) do
     begin
-      TDirectShowEventProc(FEventCallback)(EventCode, Param1, Param2);
+      FEventCallback(EventCode, Param1, Param2);
       FMediaEventEx.FreeEventParams(EventCode, Param1, Param2);
     end;
   end;
@@ -285,14 +285,14 @@ begin
   AMGetErrorText(Result, ErrorText, 256);
 end;
 
-function DSInitializeAudioFile(FileName: PWideChar; CallbackProc: Pointer):
+function DSInitializeAudioFile(FileName: PWideChar; CallbackProc: TDirectShowEventProc):
   Boolean;
 begin
   Result := Succeeded(DirectShowPlayer.InitializeAudioFile(FileName, CallbackProc));
 end;
 
 function DSInitializeVideoFile(const FileName: PWideChar; WindowHandle: HWND;
-  var Width, Height: Integer; CallbackProc: Pointer): Boolean;
+  var Width, Height: Integer; CallbackProc: TDirectShowEventProc): Boolean;
 begin
   Result := Succeeded(DirectShowPlayer.InitializeVideoFile(FileName, WindowHandle,
     Width, Height, CallbackProc));
