@@ -29,6 +29,7 @@ type
     FWindowHandle: HWND;
     FPlayerState: TDirectShowPlayerState;
     FEventCallback: TDirectShowEventProc;
+    FBasicAudio: IBasicAudio;
     FVideoWindow: IVideoWindow;
     FGraphBuilder: IGraphBuilder;
     FMediaEventEx: IMediaEventEx;
@@ -52,6 +53,8 @@ type
     function PlayMediaFile: HRESULT;
     function StopMediaPlay: HRESULT;
     function PauseMediaPlay: HRESULT;
+    function SetVolume(Value: LongInt): HRESULT;
+    function SetBalance(Value: LongInt): HRESULT;
     property LastError: HRESULT read FLastError;
   end;
 
@@ -63,6 +66,8 @@ function DSInitializeVideoFile(const FileName: PWideChar; WindowHandle: HWND; va
 function DSPlayMediaFile: Boolean; stdcall;
 function DSStopMediaPlay: Boolean; stdcall;
 function DSPauseMediaPlay: Boolean; stdcall;
+function DSSetVolume(Value: LongInt): Boolean; stdcall;
+function DSSetBalance(Value: LongInt): Boolean; stdcall;
 
 var
   DirectShowPlayer: TDirectShowPlayer;
@@ -121,6 +126,7 @@ procedure TDirectShowPlayer.InitializeFilterGraph;
 begin
   ErrorCheck(CoCreateInstance(CLSID_FilterGraph, nil, CLSCTX_INPROC_SERVER,
     IID_IFilterGraph2, FGraphBuilder));
+  ErrorCheck(FGraphBuilder.QueryInterface(IBasicAudio, FBasicAudio));
   ErrorCheck(FGraphBuilder.QueryInterface(IMediaControl, FMediaControl));
   ErrorCheck(FGraphBuilder.QueryInterface(IMediaEventEx, FMediaEventEx));
   ErrorCheck(FMediaEventEx.SetNotifyFlags(0));
@@ -131,6 +137,7 @@ end;
 
 procedure TDirectShowPlayer.FinalizeFilterGraph;
 begin
+  FBasicAudio := nil;
   FMediaEventEx := nil;
   FMediaControl := nil;
   FGraphBuilder := nil;
@@ -224,6 +231,22 @@ begin
   end;
 end;
 
+function TDirectShowPlayer.StopMediaPlay: HRESULT;
+begin
+  Result := S_FALSE;
+  try
+    if FPlayerState in [dspsPlaying, dspsPaused] then
+      FinalizeMediaPlay;
+    if FPlayerState <> dspsUninitialized then
+    begin
+      FinalizeVideoWindow;
+      FinalizeFilterGraph;
+    end;
+  except
+    Result := FLastError;
+  end;
+end;
+
 function TDirectShowPlayer.PauseMediaPlay: HRESULT;
 begin
   Result := S_FALSE;
@@ -236,17 +259,19 @@ begin
   end;
 end;
 
-function TDirectShowPlayer.StopMediaPlay: HRESULT;
+function TDirectShowPlayer.SetVolume(Value: LongInt): HRESULT;
 begin
-  Result := S_FALSE;
   try
-    if FPlayerState in [dspsPlaying, dspsPaused] then
-      FinalizeMediaPlay;
-    if FPlayerState <> dspsUninitialized then
-    begin
-      FinalizeVideoWindow;
-      FinalizeFilterGraph;
-    end;
+    Result := ErrorCheck(FBasicAudio.put_Volume(Value));
+  except
+    Result := FLastError;
+  end;
+end;
+
+function TDirectShowPlayer.SetBalance(Value: LongInt): HRESULT;
+begin
+  try
+    Result := ErrorCheck(FBasicAudio.put_Balance(Value));
   except
     Result := FLastError;
   end;
@@ -311,6 +336,16 @@ end;
 function DSPauseMediaPlay: Boolean;
 begin
   Result := Succeeded(DirectShowPlayer.PauseMediaPlay);
+end;
+
+function DSSetVolume(Value: LongInt): Boolean;
+begin
+  Result := Succeeded(DirectShowPlayer.SetVolume(Value));
+end;
+
+function DSSetBalance(Value: LongInt): Boolean;
+begin
+  Result := Succeeded(DirectShowPlayer.SetBalance(Value));
 end;
 
 initialization

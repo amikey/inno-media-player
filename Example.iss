@@ -19,6 +19,10 @@ function DSPlayMediaFile: Boolean;
   external 'DSPlayMediaFile@files:mediaplayer.dll stdcall';
 function DSStopMediaPlay: Boolean;
   external 'DSStopMediaPlay@files:mediaplayer.dll stdcall';
+function DSSetVolume(Value: LongInt): Boolean;
+  external 'DSSetVolume@files:mediaplayer.dll stdcall';
+function DSSetBalance(Value: LongInt): Boolean;
+  external 'DSSetBalance@files:mediaplayer.dll stdcall';
 function DSInitializeAudioFile(FileName: WideString; CallbackProc: TDirectShowEventProc):
   Boolean; external 'DSInitializeAudioFile@files:mediaplayer.dll stdcall';
 function DSInitializeVideoFile(FileName: WideString; WindowHandle: HWND; var Width,
@@ -44,8 +48,7 @@ var
   Width, Height: Integer;
 begin
   if DSInitializeVideoFile('c:\Video.avi', VideoForm.Handle, Width, 
-    Height, @OnMediaPlayerEvent)
-  then
+    Height, @OnMediaPlayerEvent) then
   begin
     VideoForm.ClientWidth := Width;
     VideoForm.ClientHeight := Height;
@@ -119,7 +122,10 @@ begin
     begin
       WizardForm.InnerPage.Color := clBtnFace;
       if DSInitializeAudioFile('c:\Audio.mp3', @OnEmbeddedMediaPlayerEvent) then
-        DSPlayMediaFile
+      begin
+        DSSetVolume(-2500);
+        DSPlayMediaFile;
+      end
       else
       begin
         ErrorCode := DSGetLastError(ErrorText);

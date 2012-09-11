@@ -13,7 +13,9 @@ exports
   DSInitializeVideoFile,
   DSPlayMediaFile,
   DSStopMediaPlay,
-  DSPauseMediaPlay;
+  DSPauseMediaPlay,
+  DSSetVolume,
+  DSSetBalance;
 
 begin
 end.
