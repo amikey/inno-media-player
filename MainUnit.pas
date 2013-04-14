@@ -149,6 +149,7 @@ procedure TDirectShowPlayer.InitializeVideoWindow(WindowHandle: HWND; var Width,
 begin
   ErrorCheck(FGraphBuilder.QueryInterface(IVideoWindow, FVideoWindow));
   ErrorCheck(FVideoWindow.put_Owner(WindowHandle));
+  ErrorCheck(FVideoWindow.put_MessageDrain(WindowHandle));
   ErrorCheck(FVideoWindow.put_WindowStyle(WS_CHILD or WS_CLIPSIBLINGS));
   ErrorCheck(FVideoWindow.put_Left(0));
   ErrorCheck(FVideoWindow.put_Top(0));
